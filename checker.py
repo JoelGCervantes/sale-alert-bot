@@ -1,7 +1,5 @@
-# checker.py
-
-import requests
 from bs4 import BeautifulSoup
+import requests
 
 def check_sales(url):
     response = requests.get(url)
@@ -9,11 +7,29 @@ def check_sales(url):
 
     sales = []
 
-    for item in soup.select(".sale-item"):  # Update selectors to match site
-        title = item.select_one(".item-title")
-        price = item.select_one(".sale-price")
+    # Each product is inside an <article>
+    for item in soup.select("article"):
+        # Find <h3> with an <a> inside (title area)
+        h3 = item.find("h3")
+        if not h3:
+            continue
 
-        if title and price:
-            sales.append(f"{title.get_text(strip=True)} - {price.get_text(strip=True)}")
+        a_tag = h3.find("a")
+        if not a_tag:
+            continue
+
+        # Brand is usually in a <strong> tag
+        brand_tag = a_tag.find("strong")
+        brand = brand_tag.get_text(strip=True) if brand_tag else ""
+
+        # Full title includes brand + description
+        full_title = a_tag.get_text(strip=True)
+        description = full_title.replace(brand, "", 1).strip()
+
+        # Price: first <span> containing a $
+        price_tag = item.find("span", string=lambda s: s and "$" in s)
+        price = price_tag.get_text(strip=True) if price_tag else "N/A"
+
+        sales.append(f"{brand} {description} - {price}")
 
     return sales
